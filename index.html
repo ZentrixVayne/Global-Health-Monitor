@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Health Monitor | Interactive Health Mapping</title>
+    <meta name="description" content="Monitor community health status across regions, report health issues, and track healthcare infrastructure with our interactive global health map.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Global Styles */
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #0f766e;
+            --accent: #d946ef;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray: #64748b;
+            --light-gray: #e2e8f0;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height:1.6; color:var(--dark); background-color:#f1f5f9; }
+        .container { max-width:1200px; margin:0 auto; padding:0 20px; }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color:white;
+            padding:1rem 0;
+            position: sticky;
+            top:0;
+            z-index:1000;
+            box-shadow: var(--shadow);
+        }
+        .header-content { display:flex; justify-content:space-between; align-items:center; }
+        .logo { display:flex; align-items:center; gap:10px; }
+        .logo i { font-size:2rem; }
+        .logo h1 { font-size:1.8rem; font-weight:700; }
+        nav ul { display:flex; list-style:none; gap:2rem; }
+        nav a { color:white; text-decoration:none; font-weight:500; padding:0.5rem 1rem; border-radius:4px; transition:var(--transition); }
+        nav a:hover, nav a.active { background-color: rgba(255,255,255,0.2); }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?ixlib=rb-4.0.3&auto=format&fit=crop&w=1500&q=80') center/cover no-repeat;
+            padding:4rem 0;
+            text-align:center;
+            color:white;
+        }
+        .hero h2 { font-size:2.5rem; margin-bottom:1rem; }
+        .hero p { font-size:1.2rem; max-width:800px; margin:0 auto 2rem; }
+        .btn {
+            display:inline-block;
+            padding:0.8rem 1.5rem;
+            background-color: var(--primary);
+            color:white;
+            text-decoration:none;
+            border-radius:4px;
+            font-weight:600;
+            transition:var(--transition);
+            border:none;
+            cursor:pointer;
+        }
+        .btn:hover { background-color: var(--primary-dark); transform:translateY(-2px); }
+
+        /* Map Section */
+        .map-section { padding:3rem 0; }
+        .section-title { text-align:center; margin-bottom:2rem; position:relative; padding-bottom:1rem; }
+        .section-title:after {
+            content:'';
+            position:absolute;
+            bottom:0;
+            left:50%;
+            transform:translateX(-50%);
+            width:80px;
+            height:4px;
+            background-color: var(--primary);
+        }
+        .map-container { background:white; border-radius:8px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:2rem; }
+        .map-controls {
+            padding:1rem;
+            background-color: var(--light);
+            border-bottom:1px solid var(--light-gray);
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            flex-wrap:wrap;
+        }
+        .health-indicators { display:flex; gap:1rem; flex-wrap:wrap; }
+        .indicator { display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; }
+        .color-box { width:20px; height:20px; border-radius:4px; }
+        .secure-color { background-color: var(--success); }
+        .moderate-color { background-color: var(--warning); }
+        .danger-color { background-color: var(--danger); }
+        .map-wrapper { padding:2rem; min-height:500px; position:relative; }
+        .map-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:1.5rem; }
+
+        .country-card {
+            background:white;
+            border-radius:8px;
+            overflow:hidden;
+            box-shadow:var(--shadow);
+            transition:var(--transition);
+            cursor:pointer;
+            opacity:0;
+            transform: translateY(50px);
+        }
+        .country-card.active { opacity:1; transform:translateY(0); transition:0.6s ease-out; }
+        .country-card:hover { transform:translateY(-5px); box-shadow:0 10px 15px rgba(0,0,0,0.1); }
+
+        .card-header { padding:1rem; color:white; font-weight:600; }
+        .secure { background-color: var(--success); }
+        .moderate { background-color: var(--warning); }
+        .danger { background-color: var(--danger); }
+        .card-content { padding:1rem; }
+        .stats { display:flex; justify-content:space-between; margin-bottom:1rem; }
+        .stat { text-align:center; }
+        .stat-value { font-size:1.2rem; font-weight:700; }
+        .stat-label { font-size:0.8rem; color: var(--gray); }
+        .report-btn {
+            width:100%;
+            padding:0.5rem;
+            background-color: var(--primary);
+            color:white;
+            border:none;
+            border-radius:4px;
+            cursor:pointer;
+            transition:var(--transition);
+        }
+        .report-btn:hover { background-color: var(--primary-dark); }
+
+        /* Features */
+        .features { padding:3rem 0; background:white; }
+        .features-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:2rem; }
+        .feature-card {
+            padding:2rem;
+            background-color: var(--light);
+            border-radius:8px;
+            text-align:center;
+            box-shadow:var(--shadow);
+            transition:var(--transition);
+            opacity:0;
+            transform: translateY(50px);
+        }
+        .feature-card.active { opacity:1; transform:translateY(0); transition:0.6s ease-out; }
+        .feature-card:hover { transform:translateY(-5px); }
+        .feature-icon { font-size:2.5rem; color: var(--primary); margin-bottom:1rem; }
+
+        /* Footer */
+        footer { background-color: var(--dark); color:white; padding:3rem 0 1rem; opacity:0; transform:translateY(50px); transition:0.6s ease-out; }
+        footer.active { opacity:1; transform:translateY(0); }
+        .footer-content { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:2rem; margin-bottom:2rem; }
+        .footer-column h3 { font-size:1.2rem; margin-bottom:1rem; position:relative; padding-bottom:0.5rem; }
+        .footer-column h3:after { content:''; position:absolute; bottom:0; left:0; width:40px; height:3px; background-color:var(--primary); }
+        .footer-column p, .footer-column a { color:#cbd5e1; margin-bottom:0.5rem; display:block; text-decoration:none; transition:var(--transition); }
+        .footer-column a:hover { color:white; }
+        .social-links { display:flex; gap:1rem; margin-top:1rem; }
+        .social-links a { display:flex; align-items:center; justify-content:center; width:40px; height:40px; background-color: rgba(255,255,255,0.1); border-radius:50%; transition:var(--transition); }
+        .social-links a:hover { background-color: var(--primary); transform:translateY(-3px); }
+        .copyright { text-align:center; padding-top:2rem; border-top:1px solid rgba(255,255,255,0.1); color:#94a3b8; font-size:0.9rem; }
+
+        @media (max-width:768px){
+            .header-content { flex-direction:column; gap:1rem; }
+            nav ul { gap:1rem; }
+            .hero h2 { font-size:2rem; }
+            .hero p { font-size:1rem; }
+            .map-controls { flex-direction:column; gap:1rem; }
+            .health-indicators { justify-content:center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-globe-americas"></i>
+                    <h1>Global Health Monitor</h1>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="index.html" class="active">Home</a></li>
+                        <li><a href="maps.html">Maps</a></li>
+                        <li><a href="data.html">Data</a></li>
+                        <li><a href="aboutus.html">About</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <h2>Global Health Monitoring & Crisis Management</h2>
+            <p>Track health conditions, infrastructure, and reports across regions with our interactive global health mapping platform.</p>
+            <a href="#map" class="btn">Explore the Map</a>
+        </div>
+    </section>
+
+    <!-- Map Section -->
+    <section class="map-section" id="map">
+        <div class="container">
+            <h2 class="section-title">Global Health Status Map</h2>
+            <div class="map-container">
+                <div class="map-controls">
+                    <div class="health-indicators">
+                        <div class="indicator"><div class="color-box secure-color"></div>Secure Areas</div>
+                        <div class="indicator"><div class="color-box moderate-color"></div>Moderate Risk</div>
+                        <div class="indicator"><div class="color-box danger-color"></div>High Risk</div>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" placeholder="Search countries...">
+                    </div>
+                </div>
+                <div class="map-wrapper">
+    <div class="map-grid" id="mapGrid">
+        <!-- Country cards will be injected here -->
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const countries = [
+        "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia",
+        "Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium",
+        "Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria",
+        "Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad",
+        "Chile","China","Colombia","Comoros","Congo (Congo-Brazzaville)","Costa Rica","Croatia","Cuba","Cyprus",
+        "Czechia","Democratic Republic of the Congo","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador",
+        "Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland",
+        "France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea",
+        "Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq",
+        "Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait",
+        "Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania",
+        "Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania",
+        "Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique",
+        "Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria",
+        "North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine State","Panama","Papua New Guinea",
+        "Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis",
+        "Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia",
+        "Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia",
+        "South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland",
+        "Syria","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia",
+        "Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States",
+        "Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
+    ];
+
+    const mapGrid = document.getElementById('mapGrid');
+
+    countries.forEach(country => {
+        // Random stats
+        const coverage = Math.floor(Math.random() * 101); // 0-100%
+        const clinics = Math.floor(Math.random() * 46) + 5; // 5-50
+        const hospitals = Math.floor(Math.random() * 29) + 2; // 2-30
+
+        // Determine risk level
+        let riskClass = '';
+        if(coverage >= 75) riskClass = 'secure';
+        else if(coverage >= 50) riskClass = 'moderate';
+        else riskClass = 'danger';
+
+        // Card HTML
+        const card = `
+        <div class="country-card">
+            <div class="card-header ${riskClass}"><h3>${country}</h3></div>
+            <div class="card-content">
+                <div class="stats">
+                    <div class="stat"><div class="stat-value">${coverage}%</div><div class="stat-label">Coverage</div></div>
+                    <div class="stat"><div class="stat-value">${clinics}</div><div class="stat-label">Clinics</div></div>
+                    <div class="stat"><div class="stat-value">${hospitals}</div><div class="stat-label">Hospitals</div></div>
+                </div>
+                <p>${coverage >= 75 ? "Strong healthcare coverage." : coverage >= 50 ? "Moderate healthcare access." : "Limited healthcare coverage."}</p>
+                <button class="report-btn">Report Issue</button>
+            </div>
+        </div>
+        `;
+        mapGrid.insertAdjacentHTML('beforeend', card);
+    });
+
+    // Report button functionality
+    document.querySelectorAll('.report-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const country = this.closest('.country-card').querySelector('h3').textContent;
+            alert(`Report an issue for ${country}.`);
+        });
+    });
+});
+</script>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Our Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-map-marked-alt"></i></div>
+                    <h3>Interactive Mapping</h3>
+                    <p>Explore health data through our interactive global map with real-time updates and regional insights.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-heartbeat"></i></div>
+                    <h3>Health Monitoring</h3>
+                    <p>Track health conditions, infrastructure, and emerging issues across different regions and countries.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <h3>Crisis Alert System</h3>
+                    <p>Receive alerts and updates about health crises and emergency situations in specific regions.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Global Health Monitor</h3>
+                    <p>Providing comprehensive health monitoring and crisis management solutions for communities worldwide.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3>Quick Links</h3>
+                    <a href="#">Home</a>
+                    <a href="#">Global Map</a>
+                    <a href="#">Regional Data</a>
+                    <a href="#">Health Reports</a>
+                    <a href="#">Crisis Resources</a>
+                </div>
+                <div class="footer-column">
+                    <h3>Resources</h3>
+                    <a href="#">Research Papers</a>
+                    <a href="#">Health Guidelines</a>
+                    <a href="#">Emergency Protocols</a>
+                    <a href="#">Data Methodology</a>
+                    <a href="#">API Access</a>
+                </div>
+                <div class="footer-column">
+                    <h3>Contact Us</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 123 Health Ave, Public Health District</p>
+                    <p><i class="fas fa-phone"></i> +1 (555) 123-4567</p>
+                    <p><i class="fas fa-envelope"></i> info@globalhealthmonitor.org</p>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2023 Global Health Monitor. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Scroll animation
+            const scrollElements = document.querySelectorAll('.country-card, .feature-card, footer');
+
+            const elementInView = (el, offset = 100) => {
+                const top = el.getBoundingClientRect().top;
+                return top <= (window.innerHeight || document.documentElement.clientHeight) - offset;
+            }
+
+            const displayScrollElement = (el) => { el.classList.add('active'); }
+
+            const handleScroll = () => {
+                scrollElements.forEach(el => {
+                    if (elementInView(el)) displayScrollElement(el);
+                });
+            }
+
+            window.addEventListener('scroll', handleScroll);
+            handleScroll();
+
+            // Report button functionality
+            const reportButtons = document.querySelectorAll('.report-btn');
+            reportButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const country = this.closest('.country-card').querySelector('h3').textContent;
+                    alert(`Report an issue for ${country}.`);
+                });
+            });
+
+            // Search functionality
+            const searchInput = document.querySelector('input[type="text"]');
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const cards = document.querySelectorAll('.country-card');
+                cards.forEach(card => {
+                    const name = card.querySelector('h3').textContent.toLowerCase();
+                    card.style.display = name.includes(searchTerm) ? 'block' : 'none';
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
